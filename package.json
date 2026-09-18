@@ -8,8 +8,11 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "build:frontend": "cd frontend && npm ci && npm run build",
+    "build:all": "npm run build && npm run build:frontend",
     "start": "node dist/src/server.js",
     "dev": "tsx watch src/server.ts",
+    "dev:frontend": "cd frontend && npm run dev",
     "test:optimizer": "tsx scripts/check-optimizer.ts",
     "test:samples": "tsx scripts/run-public-samples.ts",
     "dump:samples": "tsx scripts/run-public-samples.ts --dump",
@@ -21,13 +24,18 @@
   "license": "ISC",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.126.0",
+    "cors": "^2.8.5",
     "dotenv": "^18.0.0",
     "express": "^5.2.1",
-    "javascript-lp-solver": "^1.0.3"
+    "javascript-lp-solver": "^1.0.3",
+    "mongoose": "^8.9.5",
+    "pg": "^8.13.1"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.17",
     "@types/express": "^5.0.6",
     "@types/node": "^26.6.1",
+    "@types/pg": "^8.11.0",
     "tsx": "^4.23.13",
     "typescript": "^5.9.3"
   },

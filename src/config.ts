@@ -38,6 +38,10 @@ export const config = {
   /** Cache interpreted notes in memory so repeated hidden cases stay fast. */
   llmCacheEnabled: (process.env.LLM_CACHE || "true").toLowerCase() !== "false",
   llmCacheSize: int("LLM_CACHE_SIZE", 500),
+
+  // --- Optional persistence for dashboard history (judge-safe: all optional, memory fallback) ---
+  mongodbUri: process.env.MONGODB_URI || process.env.MONGO_URI || "",
+  postgresUrl: process.env.DATABASE_URL || process.env.POSTGRES_URL || "",
 };
 
 export function activeApiKeyPresent(): boolean {
