@@ -1,0 +1,38 @@
+{
+  "name": "gridwise-api",
+  "version": "1.0.0",
+  "description": "LLM-assisted smart campus energy optimization API for BUP CSE Fest 2026 preliminary (GridWise).",
+  "main": "dist/src/server.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/src/server.js",
+    "dev": "tsx watch src/server.ts",
+    "test:optimizer": "tsx scripts/check-optimizer.ts",
+    "test:samples": "tsx scripts/run-public-samples.ts",
+    "dump:samples": "tsx scripts/run-public-samples.ts --dump",
+    "test:edge": "tsx scripts/check-edge-cases.ts",
+    "test": "npm run test:optimizer && npm run test:edge"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.126.0",
+    "dotenv": "^18.0.0",
+    "express": "^5.2.1",
+    "javascript-lp-solver": "^1.0.3"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.1",
+    "tsx": "^4.23.13",
+    "typescript": "^5.9.3"
+  },
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  }
+}
