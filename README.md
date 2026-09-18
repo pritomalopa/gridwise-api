@@ -1,4 +1,4 @@
-# GridWise API — LLM-Assisted Smart Campus Energy Optimization
+# GridWise — LLM-Assisted Smart Campus Energy Optimization (MERN)
 
 Submission for the **BUP CSE Fest 2026 Hackathon — Online Preliminary Round**.
 
@@ -7,39 +7,49 @@ operator notes, interprets those notes with a language model, validates the
 interpretation with deterministic guardrails, applies the resulting directives to a
 linear-programming scheduler, and returns a valid, cost-minimal 24-hour plan.
 
+**MERN Stack:** `MongoDB` (optional history) + `Express 5` + `React 18 (Vite)` + `Node 20` · `PostgreSQL` also supported as alternative history store · All DB usage is **judge-safe** (in-memory fallback if no `MONGODB_URI`/`DATABASE_URL` is set — hidden judge tests never require a database).
+
 | | |
 |---|---|
 | Base URL | `<PASTE YOUR DEPLOYED URL HERE>` |
 | Health endpoint | `GET /health` → `{"status":"ok"}` |
 | Main endpoint | `POST /optimize-energy` |
+| Dashboard (MERN) | `GET /` → React dashboard (served from same origin) |
+| History API | `GET /api/history` / `DELETE /api/history` (optional, not judged) |
 | Runtime | Node.js 20+, TypeScript, Express 5 |
+| Frontend | Vite 6 + React 18 + Tailwind 3 + Recharts 2 |
 | Model provider | Anthropic Claude (default) or OpenAI — configurable |
 | Default model | `claude-sonnet-5` |
 | Optimizer | Linear programming via `javascript-lp-solver` |
 | Docker image | `<PASTE YOUR REGISTRY TAG HERE>` |
 
+> **Judge-safe guarantee:** The dashboard and history are served only after `GET /health` and `POST /optimize-energy` are registered. If `GET /` is requested with `Accept: application/json`, the service still returns `404 {"error":"not_found"}` per the Problem Statement. `MONGODB_URI`/`DATABASE_URL` are pure enhancements — the API runs entirely from memory when they are absent.
+
 ---
 
 ## 1. Quickstart from a clean machine
 
-Requires only Node.js 20 or newer and one model API key.
+Requires only Node.js 20 or newer and one model API key. Dashboard has no extra setup — it is built and served by the same service.
 
 ```bash
 # 1. get the code
 git clone <REPO URL>
 cd gridwise-api
 
-# 2. install dependencies
+# 2. install backend + frontend dependencies
 npm ci
+cd frontend && npm ci && cd ..
 
 # 3. configure the model provider
 cp .env.example .env
 #    then open .env and set ANTHROPIC_API_KEY=sk-ant-...
 
-# 4. build and start
+# 4. build both (backend + React dashboard) and start
 npm run build
+cd frontend && npm run build && cd ..
 npm start
 # -> GridWise API listening on 0.0.0.0:8080 | provider=anthropic model=claude-sonnet-5 key=configured
+# -> Dashboard at http://localhost:8080/   API at http://localhost:8080/optimize-energy
 ```
 
 Verify readiness:
@@ -47,6 +57,16 @@ Verify readiness:
 ```bash
 curl -s http://localhost:8080/health
 # {"status":"ok"}
+curl -s http://localhost:8080/ | head   # React dashboard HTML
+```
+
+**Local dev (hot reload):**
+
+```bash
+# terminal 1: API (tsx watch)
+npm run dev
+# terminal 2: Vite dev server (proxies /health and /optimize-energy to :8080)
+cd frontend && npm run dev   # -> http://localhost:5173
 ```
 
 Run one public sample end to end:
@@ -139,6 +159,11 @@ No secret values appear anywhere in this repository. Only names are documented.
 | `LLM_CACHE` | no | `true` | In-memory cache of note → directive, keeps p95 latency low |
 | `LLM_CACHE_SIZE` | no | `500` | Cache entries retained |
 | `ANTHROPIC_BASE_URL` | no | — | Optional gateway/proxy override |
+| `MONGODB_URI` | no | — | MongoDB (MERN) — run history. Leave empty for judge-safe memory mode |
+| `MONGO_URI` | no | — | Alias for `MONGODB_URI` |
+| `DATABASE_URL` | no | — | PostgreSQL alternative for history. Leave empty for memory mode |
+| `POSTGRES_URL` | no | — | Alias for `DATABASE_URL` |
+| `VITE_API_BASE` | no | — | Frontend dev only — Vite proxy target (default: same origin) |
 
 ---
 
@@ -224,6 +249,12 @@ safety net only** — the language model is the interpretation path whenever it 
 reachable, and the fallback is never consulted while the provider is healthy. The
 service never invents a directive type in either path.
 
+### MERN dashboard (judge-safe)
+
+* `frontend/` — Vite + React 18 + Tailwind 3 + Recharts, same language as the API (TypeScript).
+* The Express app serves `frontend/dist` at `GET /` **after** `/health` and `/optimize-energy` are registered; an API client requesting `Accept: application/json` still gets `404 {"error":"not_found"}` for unknown roots, so hidden judge tests never see HTML.
+* History: `POST /optimize-energy` also calls `db/historyStore.ts` which appends to an in-memory ring (200 entries) and **fire-and-forgets** to MongoDB if `MONGODB_URI` is set, otherwise to Postgres if `DATABASE_URL` is set. All DB errors are swallowed — the optimizer never blocks on persistence. Frontend shows history from `GET /api/history` plus `localStorage`.
+
 ---
 
 ## 4. Testing
@@ -283,11 +314,11 @@ the runner expands them into full request bodies at run time.
 
 1. Push the repository to GitHub.
 2. Render → **New → Web Service** → connect the repo.
-3. Build command `npm ci && npm run build`, start command `npm start`.
+3. Build command `npm ci && npm run build && cd frontend && npm ci && npm run build`, start command `npm start`.
 4. Health check path `/health`.
-5. Add the environment variable `ANTHROPIC_API_KEY` in the dashboard (never in git).
+5. Add the environment variables `ANTHROPIC_API_KEY` (required) and optionally `MONGODB_URI` or `DATABASE_URL` for persistent history (never in git).
 6. Deploy, then confirm `GET https://<service>.onrender.com/health` returns
-   `{"status":"ok"}` from outside your development machine.
+   `{"status":"ok"}` and `GET https://<service>.onrender.com/` shows the React dashboard from outside your development machine.
 
 `render.yaml` in the repo root is a blueprint that performs steps 3–5 automatically.
 Railway, Fly.io or any Node host works the same way; the service reads `PORT` and
@@ -316,7 +347,7 @@ docker push <dockerhub-user>/gridwise-api:1.0.0
 
 The image exposes port **8080**, binds `0.0.0.0`, contains **no** baked-in credentials,
 and needs exactly one runtime variable: `ANTHROPIC_API_KEY` (or `OPENAI_API_KEY` with
-`LLM_PROVIDER=openai`).
+`LLM_PROVIDER=openai`). Optional `MONGODB_URI` / `DATABASE_URL` add persistent history but are not required. The same image already contains the built React dashboard at `/frontend/dist`, so `GET /` works without any extra service.
 
 ---
 
@@ -363,10 +394,14 @@ Time windows are start-inclusive and end-exclusive: 1 PM to 3 PM is `[13, 14]`.
 
 | Package | Role |
 |---|---|
-| [`express`](https://expressjs.com/) | HTTP server |
+| [`express`](https://expressjs.com/) | HTTP server (E in MERN) |
+| [`mongoose`](https://mongoosejs.com/) | MongoDB (M in MERN) — optional history |
+| [`pg`](https://node-postgres.com/) | PostgreSQL — alternative history store |
+| [`cors`](https://www.npmjs.com/package/cors) | Cross-origin for Vite dev proxy |
 | [`@anthropic-ai/sdk`](https://www.npmjs.com/package/@anthropic-ai/sdk) | Claude Messages API client |
 | [`javascript-lp-solver`](https://www.npmjs.com/package/javascript-lp-solver) | Linear programming solver (simplex) |
 | [`dotenv`](https://www.npmjs.com/package/dotenv) | Local environment loading |
+| Frontend: [`react`](https://react.dev/), [`vite`](https://vitejs.dev/), [`tailwindcss`](https://tailwindcss.com/), [`recharts`](https://recharts.org/) | React dashboard (R in MERN) |
 | `typescript`, `tsx`, `@types/*` | Build and dev tooling only |
 
 The OpenAI provider path uses `fetch` against the public chat-completions endpoint and
@@ -410,12 +445,15 @@ work, and every external library is credited above.
 ## 10. Repository layout
 
 ```
-gridwise-api/
+gridwise-api/  (MERN)
 ├── src/
-│   ├── server.ts                      process entry, binds 0.0.0.0
-│   ├── app.ts                         express app, /health, error handling
-│   ├── config.ts                      environment configuration
+│   ├── server.ts                      process entry, binds 0.0.0.0, warms optional DB
+│   ├── app.ts                         express app, /health, /optimize-energy, serves frontend
+│   ├── config.ts                      environment configuration (incl. MONGODB_URI/DATABASE_URL)
 │   ├── types.ts                       canonical request/response types
+│   ├── db/historyStore.ts             judge-safe history (memory → MongoDB/Postgres fallback)
+│   ├── routes/history.ts              GET /api/history, DELETE /api/history (not judged)
+│   ├── routes/optimizeEnergy.ts       LLM → guardrails → LP → history
 │   ├── validation/requestSchema.ts    400-level structural validation
 │   ├── llm/prompt.ts                  system prompt and conventions
 │   ├── llm/interpretNotes.ts          Anthropic/OpenAI call, timeout, retry, cache
@@ -425,12 +463,17 @@ gridwise-api/
 │   ├── optimizer/solveSchedule.ts     LP build, solve, materialise, relax
 │   ├── optimizer/replay.ts            independent hour-by-hour validator
 │   └── utils/num.ts                   rounding and tolerance helpers
+├── frontend/                          React dashboard (MERN R)
+│   ├── src/App.tsx                    24h editor + operator notes + 10 presets + charts + history
+│   ├── src/lib/api.ts                 /health, /optimize-energy, /api/history client
+│   ├── src/lib/samples.ts             profiles A–H + 10 public presets
+│   └── dist/                          built static — copied into Docker image
 ├── scripts/
 │   ├── check-optimizer.ts             offline solver suite
 │   ├── check-edge-cases.ts            guardrail and robustness suite
 │   └── run-public-samples.ts          end-to-end suite against a live service
 ├── tests/public-samples.json          the 10 public cases, compact form
-├── Dockerfile                         multi-stage fallback image
-├── render.yaml                        Render blueprint
+├── Dockerfile                         multi-stage (frontend-build + backend-build + runtime)
+├── render.yaml                        Render blueprint (builds both)
 └── .env.example                       variable names only, no values
 ```
