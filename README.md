@@ -11,7 +11,7 @@ linear-programming scheduler, and returns a valid, cost-minimal 24-hour plan.
 
 | | |
 |---|---|
-| Base URL | `<PASTE YOUR DEPLOYED URL HERE>` |
+| Base URL | `https://gridwise-api-4hp0.onrender.com` |
 | Health endpoint | `GET /health` → `{"status":"ok"}` |
 | Main endpoint | `POST /optimize-energy` |
 | Dashboard (MERN) | `GET /` → React dashboard (served from same origin) |
@@ -21,7 +21,7 @@ linear-programming scheduler, and returns a valid, cost-minimal 24-hour plan.
 | Model provider | Anthropic Claude (default) or OpenAI — configurable |
 | Default model | `claude-sonnet-5` |
 | Optimizer | Linear programming via `javascript-lp-solver` |
-| Docker image | `<PASTE YOUR REGISTRY TAG HERE>` |
+| Docker image | `pritomalopa/gridwise-api:1.0.0` (DockerHub, multi-stage) |
 
 > **Judge-safe guarantee:** The dashboard and history are served only after `GET /health` and `POST /optimize-energy` are registered. If `GET /` is requested with `Accept: application/json`, the service still returns `404 {"error":"not_found"}` per the Problem Statement. `MONGODB_URI`/`DATABASE_URL` are pure enhancements — the API runs entirely from memory when they are absent.
 
