@@ -1,11 +1,7 @@
 import { createApp } from "./app";
 import { config, activeApiKeyPresent } from "./config";
-import { initHistoryStore } from "./db/historyStore";
 
 const app = createApp();
-
-// Warm up optional DB (MongoDB/Postgres) in background – never blocks health/optimize.
-initHistoryStore().catch(() => {});
 
 const server = app.listen(config.port, "0.0.0.0", () => {
   console.log(

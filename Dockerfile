@@ -1,11 +1,3 @@
-# ---------- frontend build ----------
-FROM node:20-slim AS frontend-build
-WORKDIR /app/frontend
-COPY frontend/package.json frontend/package-lock.json* ./
-RUN npm ci
-COPY frontend/ ./
-RUN npm run build
-
 # ---------- backend build ----------
 FROM node:20-slim AS backend-build
 WORKDIR /app
@@ -24,7 +16,6 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
 COPY --from=backend-build /app/dist ./dist
-COPY --from=frontend-build /app/frontend/dist ./frontend/dist
 
 # No secrets are baked into the image. The API key is supplied at run time
 # with `docker run -e ANTHROPIC_API_KEY=...`.
