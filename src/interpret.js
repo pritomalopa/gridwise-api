@@ -527,12 +527,23 @@ async function interpretNotes(notes, battery) {
   if (providers.length > 0) {
     const prompt = buildPrompt(notes, battery);
     const timeoutMs = parseInt(process.env.LLM_TIMEOUT_MS || '9000', 10);
+    const maxRetries = Math.max(0, parseInt(process.env.LLM_MAX_RETRIES || '1', 10));
     for (const p of providers) {
+      let text = null;
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          if (p.kind === 'gemini') text = await callGemini(p, prompt, timeoutMs);
+          else if (p.kind === 'ollama') text = await callOllama(p, prompt, timeoutMs);
+          else text = await callOpenAICompatible(p, prompt, timeoutMs);
+          break;
+        } catch (e) {
+          llmRaw = `provider ${p.kind} attempt ${attempt + 1} error: ${e.message}`;
+          text = null;
+          if (attempt === maxRetries) break;
+        }
+      }
+      if (!text) continue; // try next provider
       try {
-        let text;
-        if (p.kind === 'gemini') text = await callGemini(p, prompt, timeoutMs);
-        else if (p.kind === 'ollama') text = await callOllama(p, prompt, timeoutMs);
-        else text = await callOpenAICompatible(p, prompt, timeoutMs);
         const arr = extractJsonArray(text);
         // guardrail every entry
         const guarded = [];
