@@ -11,6 +11,17 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
 
+// Request log: one line per request (method, path, status, ms).
+// Bodies/keys are never logged — judge-safe for Render log viewing.
+app.use((req, res, next) => {
+  const t0 = Date.now();
+  res.on('finish', () => {
+    // eslint-disable-next-line no-console
+    console.log(`${req.method} ${req.path} ${res.statusCode} ${Date.now() - t0}ms`);
+  });
+  next();
+});
+
 // Health
 app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok' });
