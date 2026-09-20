@@ -1,12 +1,4 @@
 node_modules/
-dist/
-*.tsbuildinfo
 .env
-.env.local
-.env.*.local
 *.log
-npm-debug.log*
-tests/requests/
-.DS_Store
-.vscode/
-.idea/
+coverage/
