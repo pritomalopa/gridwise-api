@@ -44,6 +44,7 @@ function Show-Menu {
   Write-Output " 7 = Render SAMPLE-01 (valid)"
   Write-Output " 8 = Render invalid 400 + 422"
   Write-Output " 9 = Render full test (10/10)"
+  Write-Output " 10 = Burst test (10 parallel calls)"
   Write-Output " 0 = exit"
   Write-Output ""
 }
@@ -73,5 +74,13 @@ switch ($Choice) {
     curl.exe -s -w "`nHTTP %{http_code}`n" -X POST "$Render/optimize-energy" -H "Content-Type: application/json" --data "@$Bad422"
   }
   9 { Set-Location (Split-Path $PSScriptRoot -Parent); $env:BASE_URL = $Render; npm test }
+  10 {
+    Set-Location (Split-Path $PSScriptRoot -Parent)
+    $n = Read-Host "koyta parallel call (default 10)"
+    if (-not $n) { $n = "10" }
+    $target = Read-Host "kothay - 1=Local 2=Render"
+    if ($target -eq "2") { $env:BASE_URL = $Render } else { $env:BASE_URL = $Local }
+    node test/burst.js $n
+  }
   default { Write-Output "0-9 er moddhe number dao" }
 }
