@@ -1,0 +1,9 @@
+services:
+  gridwise:
+    image: ${GRIDWISE_IMAGE:-gridwise:latest}
+    build: .
+    container_name: gridwise
+    env_file: .env
+    ports:
+      - "${HOST_PORT:-8000}:8000"
+    restart: unless-stopped
