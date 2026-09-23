@@ -1,4 +1,14 @@
+.env
+.env.*
+!.env.example
+.git
+.venv
+venv
+__pycache__
+*.pyc
+.pytest_cache
+.idea
+*.pdf
+tests
 node_modules
 npm-debug.log
-.git
-.env
